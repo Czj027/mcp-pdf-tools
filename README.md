@@ -43,8 +43,15 @@ Add this to your Claude Desktop configuration file (claude_desktop_config.json):
                 "PATH_TO\\mcp-pdf-tools",
                 "run",
                 "pdf-tools"
-            ]
+            ],
+            "env": {
+                "PDF_TOOLS_ALLOWED_DIRS": "PATH_TO\\shared\\pdfs"
+            }
         }
     }
 }
 ```
+
+`PDF_TOOLS_ALLOWED_DIRS` is an optional path list (use your OS path separator) that restricts file access for all tools. If not set, the server limits access to its current working directory.
+
+Write tools (`merge-pdfs`, `extract-pages`, `merge-pdfs-ordered`) refuse to overwrite an existing output file unless `overwrite: true` is provided.

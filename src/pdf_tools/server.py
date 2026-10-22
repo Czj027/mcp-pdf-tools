@@ -14,6 +14,55 @@ import re
 # Initialize server
 server = Server("pdf-tools")
 
+ALLOWED_DIRS_ENV_VAR = "PDF_TOOLS_ALLOWED_DIRS"
+
+
+def _get_allowed_roots() -> list[str]:
+    env_value = os.environ.get(ALLOWED_DIRS_ENV_VAR, "").strip()
+    configured_paths = [path.strip() for path in env_value.split(os.pathsep) if path.strip()] if env_value else [os.getcwd()]
+    allowed_roots = [os.path.realpath(path) for path in configured_paths if os.path.isdir(os.path.realpath(path))]
+    if not allowed_roots:
+        raise ValueError("No valid allowed directories configured")
+    return allowed_roots
+
+
+def _is_path_allowed(path: str, allowed_roots: list[str]) -> bool:
+    return any(path == root or path.startswith(root + os.sep) for root in allowed_roots)
+
+
+def _resolve_allowed_path(path_value: str, allowed_roots: list[str]) -> str:
+    if not isinstance(path_value, str) or not path_value.strip():
+        raise ValueError("Invalid path")
+    raw_path = path_value.strip()
+    resolved_path = os.path.realpath(raw_path if os.path.isabs(raw_path) else os.path.join(os.getcwd(), raw_path))
+    if not _is_path_allowed(resolved_path, allowed_roots):
+        raise ValueError("Path is outside allowed directories")
+    return resolved_path
+
+
+def _validate_base_path(path_value: str, allowed_roots: list[str]) -> str:
+    resolved_path = _resolve_allowed_path(path_value, allowed_roots)
+    if not os.path.isdir(resolved_path):
+        raise ValueError("Base path must be an existing directory")
+    return resolved_path
+
+
+def _validate_input_pdf_path(path_value: str, allowed_roots: list[str]) -> str:
+    resolved_path = _resolve_allowed_path(path_value, allowed_roots)
+    if not os.path.isfile(resolved_path):
+        raise ValueError("File not found or not a valid PDF")
+    return resolved_path
+
+
+def _validate_output_path(path_value: str, allowed_roots: list[str], overwrite: bool) -> str:
+    resolved_path = _resolve_allowed_path(path_value, allowed_roots)
+    output_dir = os.path.dirname(resolved_path) or os.getcwd()
+    if not os.path.isdir(output_dir):
+        raise ValueError("Output directory does not exist")
+    if os.path.exists(resolved_path) and not overwrite:
+        raise ValueError("Output file already exists. Set overwrite to true to replace it")
+    return resolved_path
+
 @server.list_tools()
 async def handle_list_tools() -> list[types.Tool]:
     """List available PDF manipulation tools."""
@@ -32,6 +81,11 @@ async def handle_list_tools() -> list[types.Tool]:
                     "output_path": {
                         "type": "string",
                         "description": "Output path for merged PDF"
+                    },
+                    "overwrite": {
+                        "type": "boolean",
+                        "description": "Whether to overwrite an existing output file",
+                        "default": False
                     }
                 },
                 "required": ["input_paths", "output_path"]
@@ -55,6 +109,11 @@ async def handle_list_tools() -> list[types.Tool]:
                         "type": "array",
                         "items": {"type": "integer"},
                         "description": "List of page numbers to extract (1-based indexing)"
+                    },
+                    "overwrite": {
+                        "type": "boolean",
+                        "description": "Whether to overwrite an existing output file",
+                        "default": False
                     }
                 },
                 "required": ["input_path", "output_path", "pages"]
@@ -101,6 +160,11 @@ async def handle_list_tools() -> list[types.Tool]:
                     "output_path": {
                         "type": "string",
                         "description": "Output path for merged PDF"
+                    },
+                    "overwrite": {
+                        "type": "boolean",
+                        "description": "Whether to overwrite an existing output file",
+                        "default": False
                     },
                     "fuzzy_matching": {
                         "type": "boolean",
@@ -152,6 +216,7 @@ async def handle_call_tool(
     if name == "merge-pdfs":
         input_paths = arguments.get("input_paths", [])
         output_path = arguments.get("output_path")
+        overwrite = arguments.get("overwrite", False)
         
         if not input_paths or not output_path:
             raise ValueError("Missing required arguments")
@@ -159,13 +224,17 @@ async def handle_call_tool(
         merger = PyPDF2.PdfMerger()
         
         try:
+            allowed_roots = _get_allowed_roots()
+            validated_input_paths = [_validate_input_pdf_path(path, allowed_roots) for path in input_paths]
+            validated_output_path = _validate_output_path(output_path, allowed_roots, overwrite)
+
             # Add each PDF to the merger
-            for path in input_paths:
+            for path in validated_input_paths:
                 with open(path, 'rb') as pdf_file:
                     merger.append(pdf_file)
             
             # Write the merged PDF
-            with open(output_path, 'wb') as output_file:
+            with open(validated_output_path, 'wb') as output_file:
                 merger.write(output_file)
             
             return [types.TextContent(
@@ -185,12 +254,23 @@ async def handle_call_tool(
         input_path = arguments.get("input_path")
         output_path = arguments.get("output_path")
         pages = arguments.get("pages", [])
+        overwrite = arguments.get("overwrite", False)
         
         if not input_path or not output_path or not pages:
             raise ValueError("Missing required arguments")
 
         try:
-            reader = PyPDF2.PdfReader(input_path)
+            allowed_roots = _get_allowed_roots()
+            validated_input_path = _validate_input_pdf_path(input_path, allowed_roots)
+            validated_output_path = _validate_output_path(output_path, allowed_roots, overwrite)
+
+            try:
+                reader = PyPDF2.PdfReader(validated_input_path)
+            except Exception:
+                return [types.TextContent(
+                    type="text",
+                    text="Error extracting pages: file not found or not a valid PDF"
+                )]
             writer = PyPDF2.PdfWriter()
 
             # Convert 1-based page numbers to 0-based indices
@@ -204,7 +284,7 @@ async def handle_call_tool(
                     )]
 
             # Write the extracted pages to the output file
-            with open(output_path, 'wb') as output_file:
+            with open(validated_output_path, 'wb') as output_file:
                 writer.write(output_file)
 
             return [types.TextContent(
@@ -226,11 +306,11 @@ async def handle_call_tool(
         if not base_path:
             raise ValueError("Missing base_path argument")
 
-        # Normalize the base path to handle Windows paths
-        base_path = os.path.normpath(base_path)
         found_files = []
         
         try:
+            allowed_roots = _get_allowed_roots()
+            base_path = _validate_base_path(base_path, allowed_roots)
             if recursive:
                 for root, _, files in os.walk(base_path):
                     for filename in files:
@@ -265,12 +345,17 @@ async def handle_call_tool(
         base_path = arguments.get("base_path")
         patterns = arguments.get("patterns", [])
         output_path = arguments.get("output_path")
+        overwrite = arguments.get("overwrite", False)
         fuzzy_matching = arguments.get("fuzzy_matching", True)
         
         if not all([base_path, patterns, output_path]):
             raise ValueError("Missing required arguments")
 
         try:
+            allowed_roots = _get_allowed_roots()
+            base_path = _validate_base_path(base_path, allowed_roots)
+            validated_output_path = _validate_output_path(output_path, allowed_roots, overwrite)
+
             # Get all PDF files in the directory
             all_pdfs = []
             for root, _, files in os.walk(base_path):
@@ -311,7 +396,7 @@ async def handle_call_tool(
                 with open(pdf_path, 'rb') as pdf_file:
                     merger.append(pdf_file)
             
-            with open(output_path, 'wb') as output_file:
+            with open(validated_output_path, 'wb') as output_file:
                 merger.write(output_file)
 
             return [types.TextContent(
@@ -335,6 +420,8 @@ async def handle_call_tool(
             raise ValueError("Missing required arguments")
 
         try:
+            allowed_roots = _get_allowed_roots()
+            base_path = _validate_base_path(base_path, allowed_roots)
             # First, find the target PDF
             target_pdf_path = None
             for root, _, files in os.walk(base_path):
