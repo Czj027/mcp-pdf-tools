@@ -55,3 +55,9 @@ Add this to your Claude Desktop configuration file (claude_desktop_config.json):
 `PDF_TOOLS_ALLOWED_DIRS` is an optional path list (use your OS path separator) that restricts file access for all tools. If not set, the server limits access to its current working directory.
 
 Write tools (`merge-pdfs`, `extract-pages`, `merge-pdfs-ordered`) refuse to overwrite an existing output file unless `overwrite: true` is provided.
+
+## Optional Codex behavior example
+
+See [examples/codex](examples/codex/README.md) for a recorded tool-use check with
+generated blank PDFs, overwrite protection assertions and offline pytest replay.
+It runs separately and adds no runtime dependencies or model calls to existing CI.

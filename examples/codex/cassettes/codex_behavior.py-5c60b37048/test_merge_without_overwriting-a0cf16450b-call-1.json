@@ -1,0 +1,155 @@
+{
+  "schema": 1,
+  "key": "64aa280cca03a98715dab75b042538885d3deb25a8508d79d725b9d424305af7",
+  "codex_version": "codex-cli 0.163.0",
+  "events": [
+    {
+      "type": "thread.started",
+      "thread_id": "recorded-integration-example"
+    },
+    {
+      "type": "turn.started"
+    },
+    {
+      "type": "item.completed",
+      "item": {
+        "id": "item_0",
+        "type": "agent_message",
+        "text": "I’ll use only the PDF MCP merge tool, first targeting `keep.pdf` with overwrite disabled, then `merged.pdf` with the same inputs and order."
+      }
+    },
+    {
+      "type": "item.started",
+      "item": {
+        "id": "item_1",
+        "type": "mcp_tool_call",
+        "server": "pdf",
+        "tool": "merge-pdfs",
+        "arguments": {
+          "input_paths": [
+            "first.pdf",
+            "second.pdf"
+          ],
+          "output_path": "keep.pdf",
+          "overwrite": false
+        },
+        "result": null,
+        "error": null,
+        "status": "in_progress"
+      }
+    },
+    {
+      "type": "item.completed",
+      "item": {
+        "id": "item_1",
+        "type": "mcp_tool_call",
+        "server": "pdf",
+        "tool": "merge-pdfs",
+        "arguments": {
+          "input_paths": [
+            "first.pdf",
+            "second.pdf"
+          ],
+          "output_path": "keep.pdf",
+          "overwrite": false
+        },
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "Error merging PDFs: Output file already exists. Set overwrite to true to replace it"
+            }
+          ],
+          "structured_content": null
+        },
+        "error": null,
+        "status": "completed"
+      }
+    },
+    {
+      "type": "item.started",
+      "item": {
+        "id": "item_2",
+        "type": "mcp_tool_call",
+        "server": "pdf",
+        "tool": "merge-pdfs",
+        "arguments": {
+          "input_paths": [
+            "first.pdf",
+            "second.pdf"
+          ],
+          "output_path": "merged.pdf",
+          "overwrite": false
+        },
+        "result": null,
+        "error": null,
+        "status": "in_progress"
+      }
+    },
+    {
+      "type": "item.completed",
+      "item": {
+        "id": "item_2",
+        "type": "mcp_tool_call",
+        "server": "pdf",
+        "tool": "merge-pdfs",
+        "arguments": {
+          "input_paths": [
+            "first.pdf",
+            "second.pdf"
+          ],
+          "output_path": "merged.pdf",
+          "overwrite": false
+        },
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "Successfully merged 2 PDFs into merged.pdf"
+            }
+          ],
+          "structured_content": null
+        },
+        "error": null,
+        "status": "completed"
+      }
+    },
+    {
+      "type": "item.completed",
+      "item": {
+        "id": "item_3",
+        "type": "agent_message",
+        "text": "The merge into `keep.pdf` was refused because the file already exists. The same inputs were then merged into `merged.pdf` with `overwrite=false` successfully."
+      }
+    },
+    {
+      "type": "turn.completed",
+      "usage": {
+        "input_tokens": 58054,
+        "cached_input_tokens": 54656,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 211,
+        "reasoning_output_tokens": 0
+      }
+    }
+  ],
+  "diff": {
+    "added": [
+      "merged.pdf"
+    ],
+    "modified": [],
+    "deleted": []
+  },
+  "files": {
+    "merged.pdf": {
+      "data": "JVBERi0xLjMKJeLjz9MKMSAwIG9iago8PAovVHlwZSAvUGFnZXMKL0NvdW50IDIKL0tpZHMgWyA0IDAgUiA1IDAgUiBdCj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9Qcm9kdWNlciAoUHlQREYyKQo+PgplbmRvYmoKMyAwIG9iago8PAovVHlwZSAvQ2F0YWxvZwovUGFnZXMgMSAwIFIKPj4KZW5kb2JqCjQgMCBvYmoKPDwKL1R5cGUgL1BhZ2UKL1Jlc291cmNlcyA8PAo+PgovTWVkaWFCb3ggWyAwIDAgNzIgNzIgXQovUGFyZW50IDEgMCBSCj4+CmVuZG9iago1IDAgb2JqCjw8Ci9UeXBlIC9QYWdlCi9SZXNvdXJjZXMgPDwKPj4KL01lZGlhQm94IFsgMCAwIDcyIDcyIF0KL1BhcmVudCAxIDAgUgo+PgplbmRvYmoKeHJlZgowIDYKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDE1IDAwMDAwIG4gCjAwMDAwMDAwODAgMDAwMDAgbiAKMDAwMDAwMDEyMCAwMDAwMCBuIAowMDAwMDAwMTY5IDAwMDAwIG4gCjAwMDAwMDAyNTcgMDAwMDAgbiAKdHJhaWxlcgo8PAovU2l6ZSA2Ci9Sb290IDMgMCBSCi9JbmZvIDIgMCBSCj4+CnN0YXJ0eHJlZgozNDUKJSVFT0YK",
+      "mode": 438
+    }
+  },
+  "returncode": 0,
+  "stderr": "",
+  "sanitization": {
+    "thread_id": "anonymized",
+    "stderr": "nonbehavioral startup diagnostics omitted; original kept privately"
+  }
+}
