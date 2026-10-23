@@ -17,7 +17,7 @@ Replay needs only pytest-codex and the pinned PyPDF2 fixture generator/reader.
 It needs no MCP SDK, Codex binary, login or model calls. It restores the recorded
 PDF and checks it, rather than running today's server. A separate pytest config
 and non-default filename keep this example out of ordinary test discovery.
-No runtime dependencies or existing CI workflows are changed.
+No runtime dependencies are changed; the separate fork-only CI runs this replay.
 
 For a fresh observation, install `requirements-live.txt`, activate that
 environment so `python` resolves to it, and use a logged-in Codex CLI 0.163.0:
@@ -46,3 +46,18 @@ when upgrading. PyPDF2 is pinned because fixture bytes participate in the key.
   The committed observation was recorded after scoping approval to this fixture.
 - Thread identifier anonymized; nonbehavioral startup stderr omitted. Tool
   arguments, results, usage and generated PDF bytes are retained.
+
+## Personal-fork compatibility check
+
+This branch is maintained by the pytest-codex author as a personal-fork case
+study. It is not upstream adoption, endorsement, or an independently reported
+user trial. The original recording is unchanged; replay now uses the published
+pytest-codex 0.3.0 package.
+
+The separate `Offline Codex replay` workflow runs on Linux, macOS and Windows
+with Python 3.10 and 3.13. It installs only replay dependencies and explicitly
+selects an unavailable Codex executable. It cannot make a fresh model call.
+A green run verifies the saved observation and restored fixture artifacts; it
+does not start the current MCP server or prove fresh model compatibility.
+Dependency installation needs network access; test execution replays locally.
+There is no scheduled live testing or model spend.
